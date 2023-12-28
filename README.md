@@ -3,4 +3,5 @@
 - Build Basic Generative Adversarial Networks (GANs) (23,12.28 ~ )
     - week 1
     - week 2
+      - https://www.coursera.org/learn/build-basic-generative-adversarial-networks-gans/programming/5XDp8/deep-convolutional-gan-dcgan/lab?path=%2Fnotebooks%2FC1_W2_Assignment.ipynb
       - https://colab.research.google.com/github/https-deeplearning-ai/GANs-Public/blob/master/C1W2_Video_Generation_(Optional).ipynb
