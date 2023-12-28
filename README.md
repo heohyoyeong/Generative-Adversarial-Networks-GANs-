@@ -5,3 +5,10 @@
     - week 2
       - https://www.coursera.org/learn/build-basic-generative-adversarial-networks-gans/programming/5XDp8/deep-convolutional-gan-dcgan/lab?path=%2Fnotebooks%2FC1_W2_Assignment.ipynb
       - https://colab.research.google.com/github/https-deeplearning-ai/GANs-Public/blob/master/C1W2_Video_Generation_(Optional).ipynb
+    - week 3
+      - https://www.coursera.org/learn/build-basic-generative-adversarial-networks-gans/ungradedLab/c2FPs/optional-sn-gan/lab?path=%2Fnotebooks%2FSNGAN.ipynb
+      - https://colab.research.google.com/github/https-deeplearning-ai/GANs-Public/blob/master/ProteinGAN.ipynb
+    - week 4
+      - 
+
+
