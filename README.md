@@ -9,6 +9,6 @@
       - https://www.coursera.org/learn/build-basic-generative-adversarial-networks-gans/ungradedLab/c2FPs/optional-sn-gan/lab?path=%2Fnotebooks%2FSNGAN.ipynb
       - https://colab.research.google.com/github/https-deeplearning-ai/GANs-Public/blob/master/ProteinGAN.ipynb
     - week 4
-      - 
+      - https://www.coursera.org/learn/build-basic-generative-adversarial-networks-gans/ungradedLab/GxKAY/optional-infogan/lab
 
 
