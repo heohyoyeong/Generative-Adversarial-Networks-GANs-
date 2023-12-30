@@ -11,7 +11,7 @@
     - week 4
       - https://www.coursera.org/learn/build-basic-generative-adversarial-networks-gans/ungradedLab/GxKAY/optional-infogan/lab
 
-- Build Better Generative Adversarial Networks (GANs) (23,12.29 ~ )
+- Build Better Generative Adversarial Networks (GANs) (23,12.29 ~ 23,12.30)
     - week 1
       - [Frechet Inception distance(FID)가 무었인가](https://wandb.ai/wandb_fc/korean/reports/-Frechet-Inception-distance-FID-GANs---Vmlldzo0MzQ3Mzc)
       - [GAN의 성능은 도대체 어떻게 평가해야 할까?](https://velog.io/@viriditass/GAN%EC%9D%80-%EC%95%8C%EA%B2%A0%EB%8A%94%EB%8D%B0-%EA%B7%B8%EB%9E%98%EC%84%9C-%EC%96%B4%EB%96%A4-GAN%EC%9D%B4-%EB%8D%94-%EC%A2%8B%EC%9D%80%EA%B1%B4%EB%8D%B0-How-to-evaluate-GAN#inception-score)
