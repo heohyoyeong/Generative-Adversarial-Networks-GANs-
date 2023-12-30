@@ -12,4 +12,6 @@
       - https://www.coursera.org/learn/build-basic-generative-adversarial-networks-gans/ungradedLab/GxKAY/optional-infogan/lab
 
 - Build Better Generative Adversarial Networks (GANs) (23,12.29 ~ )
+    - week 1
+      - [Frechet Inception distance(FID)가 무었인가](https://wandb.ai/wandb_fc/korean/reports/-Frechet-Inception-distance-FID-GANs---Vmlldzo0MzQ3Mzc)
 
