@@ -1,5 +1,10 @@
 이 레포는 coursera의 Generative Adversarial Networks (GANs) 강좌에서 학습한 내용을 첨부하였습니다.
 
+기본 pythorch gpu pip 설치 명령어 
+<br>
+###### pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
+
+
 - Build Basic Generative Adversarial Networks (GANs) (23,12.28 ~ 23,12.29)
     - week 1
 
