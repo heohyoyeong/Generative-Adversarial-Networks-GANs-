@@ -244,20 +244,8 @@ if __name__ == "__main__":
     save = "./result"
     root = './dataset'
 
-    if not os.path.exists(root):
-        os.mkdir(root)
-        dataloader = DataLoader(
-            MNIST(root, download=True, transform=transforms.ToTensor()),
-            batch_size=batch_size,
-            shuffle=True)
-    else:
-        dataloader = DataLoader(
-            MNIST(root, download=False, transform=transforms.ToTensor()),
-            batch_size=batch_size,
-            shuffle=True)
+    dataloader = torchutils.Mnist_dataLoader(root,save,batch_size,transforms.ToTensor())
 
-    if not os.path.exists(save):
-        os.mkdir(save)
 
     ### DO NOT EDIT ###
     device = 'cuda'
