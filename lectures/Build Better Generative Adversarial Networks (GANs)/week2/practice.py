@@ -4,8 +4,10 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 import imageio
+from utilsfunction import normalutils
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+normalutils.set_random_seed(42)
+
 
 def batch_generator(inputs, batch_size):
     """
@@ -15,46 +17,73 @@ def batch_generator(inputs, batch_size):
     for i in range(0, l, batch_size):
         yield inputs[i:min(i + batch_size, l)]
 
-# if not os.path.exists('tiny_nerf_data.npz'):
-#     wget "https://bmild.github.io/nerf/tiny_nerf_data.npz"
 
-data = np.load('tiny_nerf_data.npz')
-images = data['images']
-poses = data['poses']
-focal = data['focal']
-print(images.shape, poses.shape, focal)
 
-testimg, testpose = images[101], poses[101]
-# use the first 100 images for training
-images = images[:100,...,:3]
-poses = poses[:100]
+# def get_rays(height, width, focal_length, cam2world):
+#     """
+#     Compute the rays (origins and directions) passing through an image with
+#     `height` and `width` (in pixels). `focal_length` (in pixels) is a property
+#     of the camera. `cam2world` represents and transform tensor from a 3D point
+#     in the "camera" frame of reference to the "world" frame of reference (the
+#     `pose` in our dataset).
+#     """
+#     i, j = torch.meshgrid(torch.arange(width).to(cam2world),torch.arange(height).to(cam2world))
+#     # , indexing = "xy"
+#     dirs = torch.stack([
+#         (i.cpu() - width / 2) / focal_length,
+#         - (j.cpu() - height / 2) / focal_length,
+#         - torch.ones_like(i.cpu())
+#     ], dim=-1).to(cam2world)
+#     rays_d = torch.sum(dirs[..., None, :] * cam2world[:3, :3], dim=-1)
+#     rays_o = cam2world[:3, -1].expand(rays_d.shape)
+#     return rays_o, rays_d
 
-plt.imshow(testimg)
-plt.show()
 
-images = torch.from_numpy(images).to(device)
-poses = torch.from_numpy(poses).to(device)
-testimg = torch.from_numpy(testimg).to(device)
-testpose = torch.from_numpy(testpose).to(device)
+def meshgrid_xy(tensor1: torch.Tensor, tensor2: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+    """Mimick np.meshgrid(..., indexing="xy") in pytorch. torch.meshgrid only allows "ij" indexing.
+    (If you're unsure what this means, safely skip trying to understand this, and run a tiny example!)
 
-def get_rays(height, width, focal_length, cam2world):
+    Args:
+      tensor1 (torch.Tensor): Tensor whose elements define the first dimension of the returned meshgrid.
+      tensor2 (torch.Tensor): Tensor whose elements define the second dimension of the returned meshgrid.
     """
-    Compute the rays (origins and directions) passing through an image with
-    `height` and `width` (in pixels). `focal_length` (in pixels) is a property
-    of the camera. `cam2world` represents and transform tensor from a 3D point
-    in the "camera" frame of reference to the "world" frame of reference (the
-    `pose` in our dataset).
+    # TESTED
+    ii, jj = torch.meshgrid(tensor1, tensor2)
+    return ii.transpose(-1, -2), jj.transpose(-1, -2)
+
+def get_rays(height: int, width: int, focal_length: float, tform_cam2world: torch.Tensor):
+    r"""Compute the bundle of rays passing through all pixels of an image (one ray per pixel).
+
+    Args:
+      height (int): Height of an image (number of pixels).
+      width (int): Width of an image (number of pixels).
+      focal_length (float or torch.Tensor): Focal length (number of pixels, i.e., calibrated intrinsics).
+      tform_cam2world (torch.Tensor): A 6-DoF rigid-body transform (shape: :math:`(4, 4)`) that
+        transforms a 3D point from the camera frame to the "world" frame for the current example.
+
+    Returns:
+      ray_origins (torch.Tensor): A tensor of shape :math:`(width, height, 3)` denoting the centers of
+        each ray. `ray_origins[i][j]` denotes the origin of the ray passing through pixel at
+        row index `j` and column index `i`.
+        (TODO: double check if explanation of row and col indices convention is right).
+      ray_directions (torch.Tensor): A tensor of shape :math:`(width, height, 3)` denoting the
+        direction of each ray (a unit vector). `ray_directions[i][j]` denotes the direction of the ray
+        passing through the pixel at row index `j` and column index `i`.
+        (TODO: double check if explanation of row and col indices convention is right).
     """
-    i, j = torch.meshgrid(torch.arange(width).to(cam2world),torch.arange(height).to(cam2world))
-    # , indexing = "xy"
-    dirs = torch.stack([
-        (i.cpu() - width / 2) / focal_length,
-        - (j.cpu() - height / 2) / focal_length,
-        - torch.ones_like(i.cpu())
-    ], dim=-1).to(cam2world)
-    rays_d = torch.sum(dirs[..., None, :] * cam2world[:3, :3], dim=-1)
-    rays_o = cam2world[:3, -1].expand(rays_d.shape)
-    return rays_o, rays_d
+    # TESTED
+    ii, jj = meshgrid_xy(
+        torch.arange(width).to(tform_cam2world),
+        torch.arange(height).to(tform_cam2world)
+    )
+    directions = torch.stack([(ii.cpu() - width * .5) / focal_length,
+                              -(jj.cpu() - height * .5) / focal_length,
+                              -torch.ones_like(ii.cpu())
+                              ], dim=-1).to(tform_cam2world)
+    ray_directions = torch.sum(directions[..., None, :] * tform_cam2world[:3, :3], dim=-1)
+    ray_origins = tform_cam2world[:3, -1].expand(ray_directions.shape)
+    return ray_origins, ray_directions
+
 
 def positional_encoding(x, L_embed=6):
     """
@@ -66,6 +95,7 @@ def positional_encoding(x, L_embed=6):
         for fn in [torch.sin, torch.cos]:
             rets.append(fn(2 ** i * x))
     return torch.cat(rets, dim=-1)
+
 
 class TinyNeRF(nn.Module):
     """
@@ -86,9 +116,7 @@ class TinyNeRF(nn.Module):
         out = self.layer4(out)
         return out
 
-def render_rays(
-    model, rays_o, rays_d, near, far, N_samples, encoding_fn, rand=True
-):
+def render_rays(model, rays_o, rays_d, near, far, N_samples, encoding_fn, rand=True):
     """
     Use `model` to render the rays parameterized by `rays_o` and `rays_d`
     between `near` and `far` limits with `N_samples`.
@@ -134,6 +162,27 @@ def render_rays(
     acc_map = weights.sum(dim=-1)
     return rgb_map, depth_map, acc_map
 
+def trans_t(t):
+    tform = np.eye(4).astype(np.float32)
+    tform[2][3] = t
+    return tform
+
+
+def rot_phi(phi):
+    tform = np.eye(4).astype(np.float32)
+    tform[1, 1] = tform[2, 2] = np.cos(phi)
+    tform[1, 2] = -np.sin(phi)
+    tform[2, 1] = -tform[1, 2]
+    return tform
+
+
+def rot_theta(theta):
+    tform = np.eye(4).astype(np.float32)
+    tform[0, 0] = tform[2, 2] = np.cos(theta)
+    tform[0, 2] = -np.sin(theta)
+    tform[2, 0] = -tform[0, 2]
+    return tform
+
 
 def pose_spherical(theta, phi, radius):
     """
@@ -143,25 +192,45 @@ def pose_spherical(theta, phi, radius):
     c2w = trans_t(radius)
     c2w = rot_phi(phi/180.*np.pi) @ c2w
     c2w = rot_theta(theta/180.*np.pi) @ c2w
-    c2w = np.array([[-1,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,1]]) @ c2w.numpy()
+    c2w = np.array([[-1,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,1]]) @ c2w
     return c2w
 
 
 if __name__=="__main__":
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # if not os.path.exists('tiny_nerf_data.npz'):
+    #     wget "https://bmild.github.io/nerf/tiny_nerf_data.npz"
+
+    data = np.load('tiny_nerf_data.npz')
+    images = data['images']
+    poses = data['poses']
+    focal = data['focal']
+    print(images.shape, poses.shape, focal)
+
+    testimg, testpose = images[101], poses[101]
+    # use the first 100 images for training
+    images = images[:100, ..., :3]
+    poses = poses[:100]
+
+    images = torch.from_numpy(images).to(device)
+    poses = torch.from_numpy(poses).to(device)
+    testimg = torch.from_numpy(testimg).to(device)
+    testpose = torch.from_numpy(testpose).to(device)
+
     # define parameters
     NUM_ENCODING_FUNCTIONS = 6
     NEAR = 2
     FAR = 6
     DEPTH_SAMPLES = 64
-    LEARNING_RATE = 4e-3
+    LEARNING_RATE = 5e-3
     BATCH_SIZE = 16384
     NUM_EPOCHS = 1000
     DISPLAY_EVERY = 100
     HEIGHT, WIDTH = images.shape[1:3]
     FOCAL = data['focal']
-    # SEED = 42
-    # torch.manual_seed(SEED)
-    # np.random.seed(SEED)
+
 
     # initialize encoding function, model, loss, and optimizer
     encoding_fn = lambda x: positional_encoding(x, L_embed=NUM_ENCODING_FUNCTIONS)
@@ -205,30 +274,6 @@ if __name__=="__main__":
             psnr = -10 * torch.log10(loss)
             psnrs.append(psnr.item())
             iternums.append(i)
-
-
-    trans_t = lambda t : torch.tensor([
-        [1,0,0,0],
-        [0,1,0,0],
-        [0,0,1,t],
-        [0,0,0,1],
-    ], dtype=torch.float32)
-
-    rot_phi = lambda phi : torch.tensor([
-        [1,0,0,0],
-        [0,np.cos(phi),-np.sin(phi),0],
-        [0,np.sin(phi), np.cos(phi),0],
-        [0,0,0,1],
-    ], dtype=torch.float32)
-
-    rot_theta = lambda th : torch.tensor([
-        [np.cos(th),0,-np.sin(th),0],
-        [0,1,0,0],
-        [np.sin(th),0, np.cos(th),0],
-        [0,0,0,1],
-    ], dtype=torch.float32)
-
-
 
 
     # run poses that encircle the object through our trained model and make a video
