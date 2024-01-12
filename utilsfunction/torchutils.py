@@ -38,3 +38,11 @@ def Mnist_dataLoader(root, save, batch_size, transform):
 
 def get_noise(n_samples, input_dim, device='cpu'):
     return torch.randn(n_samples, input_dim, device=device)
+
+
+def combine_vectors(x, y, idx=1):
+    return torch.cat([x, y], idx)
+
+
+def get_one_hot_labels(labels, n_classes):
+    return  torch.nn.functional.one_hot(labels,n_classes)
