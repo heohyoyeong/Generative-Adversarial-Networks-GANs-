@@ -46,3 +46,14 @@ def combine_vectors(x, y, idx=1):
 
 def get_one_hot_labels(labels, n_classes):
     return  torch.nn.functional.one_hot(labels,n_classes)
+
+
+def crop(image, new_shape):
+    middle_height = image.shape[2] // 2
+    middle_width = image.shape[3] // 2
+    start_height = middle_height - new_shape[2] // 2
+    end_height = start_height + new_shape[2]
+    start_width = middle_width - new_shape[3] // 2
+    end_width = start_width + new_shape[3]
+    cropped_image = image[:, :, start_height:end_height, start_width:end_width]
+    return cropped_image

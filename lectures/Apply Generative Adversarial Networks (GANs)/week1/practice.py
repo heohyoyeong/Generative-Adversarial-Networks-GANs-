@@ -221,4 +221,4 @@ if __name__=="__main__":
     device = 'cuda'
     generator_input_dim = z_dim + n_classes
     # train_classifier()
-    train_generator()
+    # train_generator()
